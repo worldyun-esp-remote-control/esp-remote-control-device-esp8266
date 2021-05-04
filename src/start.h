@@ -11,6 +11,7 @@
 #include <IR.h>
 #include <WIFI.h>
 #include <Config.h>
+#include <Mqtt.h>
 
 //-----------宏定义---------------------------
 #define SERIAL_BAUD 115200       //串口波特率
@@ -24,6 +25,7 @@
 //-----------静态变量初始化--------------------
 Config *Config::_config = nullptr;
 IR *IR::_ir = nullptr;
+Mqtt *Mqtt::_mqtt = nullptr;
 
 
 void start(){
@@ -35,6 +37,7 @@ void start(){
     Config::start();                 //读取config，必须在其他功能前启动
     WIFI::start();                   //启动WIFI
     IR::start(IR_RECV_PIN, IR_RECV_BUFFER_SIZE, IR_SEND_PIN, USE_LED, LED_PIN);   //启动红外
+    Mqtt::start();                   //启动Mqtt
 }
 
 #endif

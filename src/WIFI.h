@@ -40,6 +40,7 @@ public:
   }
 
   static void loadConfig(){
+    wifiMulti.cleanAPlist();
     Config *config = Config::getConfig();
     wifiMulti.addAP(config->wifiSSID.c_str(), config->wifiPassword.c_str());
   }
@@ -61,6 +62,13 @@ public:
     Serial.println("WiFi connected");
     Serial.println("IP address: ");
     Serial.println(WiFi.localIP());
+  }
+
+  static void loop(){
+    if(!WiFi.isConnected()){
+      Serial.println("WiFi not connected! retry connect");
+      start();
+    }
   }
 };
 

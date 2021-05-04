@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <start.h>
 #include <Config.h>
+#include <Mqtt.h>
 
 const uint16_t rawCodes_open[199] = {4476, 4424,  568, 1626,  540, 536,  542, 1624,  542, 1624,  542, 536,  542, 534,  542, 1624,  544, 536,  544, 532,  544, 1624,  544, 534,  542, 534,  542, 1624,  544, 1624,  544, 532,  542, 1624,  546, 532,  544, 1624,  544, 1622,  546, 1622,  544, 1624,  544, 534,  544, 1620,  546, 1622,  546, 1622,  542, 534,  544, 532,  544, 532,  546, 532,  544, 1622,  544, 534,  546, 532,  544, 1620,  546, 1622,  568, 1598,  544, 534, 
  544, 532,  546, 530,  546, 532,  546, 532,  544, 532,  544, 532,  546, 532,  570, 1598,  546, 1620,  546, 1622,  544, 1622,  568, 1598,  546, 5248,  4484, 4398,  594, 1598,  566, 510,  570, 1598,  570, 1598,  568, 508,  568, 
@@ -15,12 +16,13 @@ void setup() {
 
 
 void loop() {
-  Config* config = Config::getConfig();
-  Serial.println(config->wifiSSID);
+  // Config* config = Config::getConfig();
+  // Serial.println(config->wifiSSID);
   // ir.sendRaw((uint16_t *)rawCodes_open, 199);
   // String rawString = ir.recRawString();
   // Serial.println(rawString);
-  delay(500);
-  
+  // delay(500);
+  WIFI::loop();
+  Mqtt::loop();
 }
 
