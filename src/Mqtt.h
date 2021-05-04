@@ -9,19 +9,27 @@
 
 #define MQTT_SERVER_ADDRESS "worldyun.xyz"      //MQTT 服务器地址、域名
 #define MQTT_SERVER_PORT 1883                   //MQTT 服务器端口
-#define MSG_BUFFER_SIZE	3096                    //MQTT msg buffer size 同时还需要修改 PubSubClient.h 的 MQTT_MAX_PACKET_SIZE
+#define MSG_BUFFER_SIZE	1560                    //MQTT msg buffer size
 #define MSG_CUT_SIZE 128                        //MQTT 上传报文分片大小
 #define MQTT_UPLOAD_TOPIC "/upload"             //MQTT 上传topic
+#define MQTT_LEARN_TOPIC "/learn"               //MQTT 上传学习码topic
 #define MQTT_DOWNLOAD_TOPIC "/device/"          //MQTT 订阅topic前缀
+#define JSON_BUFFER_SIZE 2048                   //Json buff size
 
 #include <PubSubClient.h>
+#include <ArduinoJson.h>
+#include <IR.h>
+
 WiFiClient wifiClient;
+
 class Mqtt
 {
 private:
     static Mqtt* _mqtt;
     PubSubClient* mqttClient;
     String subscribeTopic;
+    char msgBuf[MSG_BUFFER_SIZE];
+    uint16_t msgSize;
     Mqtt(){
         mqttClient = new PubSubClient(wifiClient);
         mqttClient->setServer(MQTT_SERVER_ADDRESS, MQTT_SERVER_PORT);
@@ -52,39 +60,112 @@ public:
     static void callback(char* topic, byte* payload, unsigned int length) {
         Serial.print("Message arrived [");
         Serial.print(topic);
-        Serial.print("] ");
+        Serial.print("]  len: ");
+        Serial.println(length);
+        Mqtt* mqtt = getMqtt();
+        mqtt->msgSize = length;
         for (int i = 0; i < length; i++) {
-            Serial.print((char)payload[i]);
+            mqtt->msgBuf[i] = (char)payload[i];
         }
-        Serial.println();
+        mqtt->msgBuf[length] = '\0';
+        mqtt->work(topic);
+    }
 
+    void work(String topic){
+        StaticJsonDocument<JSON_BUFFER_SIZE> json;
+        // deserializeMsgPack(json, payload);   //byte[] to json
+        deserializeJson(json, msgBuf);      //char[] to json
+        uint16_t codeType = json["codeType"];
+        uint32_t rawID = json["data"]["rawID"];
+        switch (codeType)
+        {
+        case 1:         //send
+            send(json["data"]["raw"].as<JsonArray>());
+            break;
+        
+        case 2:         //learn
+            json.clear();
+            learn(rawID);
+            break;
 
-        //发送长报文
-        String json_str = "[4476, 4424, 568, 1626, 540, 536, 542, 1624, 542, 1624, 542, 536, 542, 534, 542, 1624, 544, 536, 544, 532, 544, 1624, 544, 534, 542, 534, 542, 1624, 544, 1624, 544, 532, 542, 1624, 546, 532, 544, 1624, 544, 1622, 546, 1622, 544, 1624, 544, 534, 544, 1620, 546, 1622, 546, 1622, 542, 534, 544, 532, 544, 532, 546, 532, 544, 1622, 544, 534, 546, 532, 544, 1620, 546, 1622, 568, 1598, 544, 534, 544, 532, 546, 530, 546, 532, 546, 532, 544, 532, 544, 532, 546, 532, 570, 1598, 546, 1620, 546, 1622, 544, 1622, 568, 1598, 546, 5248, 4484, 4398, 594, 1598, 566, 510, 570, 1598, 570, 1598, 568, 508, 568, 508, 570, 1598, 570, 508, 570, 506, 570, 1598, 570, 506, 570, 506, 572, 1596, 570, 1574, 592, 508, 570, 1572, 596, 506, 572, 1596, 572, 1596, 570, 1572, 596, 1596, 572, 504, 570, 1572, 596, 1572, 596, 1572, 596, 506, 570, 506, 570, 506, 570, 508, 570, 1574, 592, 508, 570, 508, 568, 1576, 590, 1574, 594, 1572, 594, 510, 568, 508, 566, 486, 592, 486, 590, 510, 566, 512, 566, 486, 590, 486, 590, 1574, 592, 1576, 592, 1576, 592, 1576, 590, 1578, 588]";
-        //拆分字符串发送
-        int json_str_len = json_str.length();  //总数据长度
+        } 
+    }
 
+    void send(JsonArray jsonArray){
+        uint16_t size = jsonArray.size();
+        uint16_t *raw = new uint16_t[size]; 
+        uint16_t i = 0;
+        for (JsonVariant value : jsonArray) {
+            raw[i++] = value.as<uint16_t>();
+        }
+        Serial.println(size);
+        IR::getIR()->sendRaw(raw, size);
+        delete raw;
+    }
+
+    void learn(uint32_t rawID){
+        Serial.print("rawID:");
+        Serial.println(rawID);
+        Serial.println("learn .... .... ");
+        uint16_t* raw = IR::getIR()->recRawArray();
+        uint16_t rawLen = IR::getIR()->getRawLen();
+
+        /*  ESP8266内存太小， 用JSON会爆掉，只能手动封装， 这段代码留着以后上ESP32时使用
+        DynamicJsonDocument doc(JSON_BUFFER_SIZE);
+        JsonArray rawArray  = doc.createNestedArray("raw");
+        if(raw != nullptr){
+            for (size_t i = 0; i < rawLen; i++){
+                rawArray.add(raw[i]);
+            }
+        }
+        Serial.println("learn ....2 ....");
+        doc["rawID"] = rawID;
+        String uploadString;
+        serializeJson(doc, uploadString);
+        Serial.println("learn ....3 ....");
+        doc.clear();
+        publish(MQTT_LEARN_TOPIC, uploadString);
+        Serial.println("learn ....4 ....");
+        Serial.println(uploadString);
+        */
+
+        String uploadString = "{\"rawID\":";
+        uploadString += rawID;
+        uploadString += ",\"raw\":[";
+        if(raw != nullptr){
+            for (size_t i = 0; i < rawLen; i++){
+                uploadString += raw[i];
+                if(i != rawLen - 1){
+                    uploadString += ",";
+                }
+            }
+        }
+        uploadString += "]}";
+        Serial.println(uploadString);
+        publish(MQTT_LEARN_TOPIC, &uploadString);
+    }
+
+    void publish(char* topic, String* payload){
+
+        int len = payload->length();  //总数据长度
         PubSubClient* client = getMqtt()->getPubSubClient();
-        if (json_str_len > MSG_CUT_SIZE)
+        if (len > MSG_CUT_SIZE)        //超长报文，切片发送
         {
             //开始发送长文件参数分别为  主题，长度，是否持续
-            client->beginPublish(MQTT_UPLOAD_TOPIC, json_str_len, true);
-            int count = json_str_len / MSG_CUT_SIZE;
+            client->beginPublish(topic, len, true);
+            int count = len / MSG_CUT_SIZE;
             for (int i = 0; i < (count-1); i++)
             {
-                client->print(json_str.substring(i * MSG_CUT_SIZE, (i * MSG_CUT_SIZE + MSG_CUT_SIZE)));
+                client->print(payload->substring(i * MSG_CUT_SIZE, (i * MSG_CUT_SIZE + MSG_CUT_SIZE)));
             }
-            client->print(json_str.substring(MSG_CUT_SIZE * (count - 1)));
+            client->print(payload->substring(MSG_CUT_SIZE * (count - 1)));
             //结束发送文本
             client->endPublish();
         }
         else
         {
-            client->publish(MQTT_UPLOAD_TOPIC, json_str.c_str());
+            client->publish(topic, payload->c_str());
         }
-
-        // getMqtt()->getPubSubClient()->publish(MQTT_UPLOAD_TOPIC, "111");
-        //do 
     }
 
     bool connect(){
@@ -103,10 +184,6 @@ public:
             // Attempt to connect
             if (connect()) {
                 Serial.println("connected");
-                // Once connected, publish an announcement...
-                // mqttClient->publish("outTopic", "hello world");
-                // ... and resubscribe
-                // mqttClient->subscribe(subscribeTopic.c_str());
             } else {
                 Serial.print("failed, rc=");
                 Serial.print(mqttClient->state());

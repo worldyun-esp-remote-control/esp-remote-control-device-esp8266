@@ -9,6 +9,8 @@
 #ifndef _ESP_REMOTE_CONTROL_IR_
 #define _ESP_REMOTE_CONTROL_IR_
 
+#define IR_REC_TIMEOUT_S 5
+
 #include <IRremoteESP8266.h>
 #include <IRrecv.h>
 #include <IRsend.h>
@@ -25,6 +27,7 @@ class IR
         bool useLed = false;
         uint16_t ledPin = 2;
         uint8_t recCount;
+        uint16_t rawLen;
 
         IR(uint16_t recvPin = 4, uint16_t buffSize = 200, uint16_t sendPin = 5, bool useLed = false, uint16_t ledPin = 2){
             this->iRrecv = new IRrecv(recvPin, buffSize);
@@ -35,6 +38,7 @@ class IR
 
             this->useLed = useLed;
             this->ledPin = ledPin;
+            this->rawLen = 0;
         }
 
     public:
@@ -66,22 +70,28 @@ class IR
         }
 
         uint16_t* recRawArray(){
-            if(recData()){
-                iRrecv->resume();  //刷新
-                return NULL;
-            }
             iRrecv->resume();  //刷新
+            if(!recData()){
+                iRrecv->resume();  //刷新
+                rawLen = 0;
+                return nullptr;
+            }
+            iRrecv->resume();      //刷新
+            rawLen = getCorrectedRawLength(&results);
             return resultToRawArray(&results);
             
         }
 
 
         String recRawString(){
+            iRrecv->resume();  //刷新
             if(!recData()){
                 iRrecv->resume();  //刷新
+                rawLen = 0;
                 return "";
             }
             iRrecv->resume();  //刷新
+            rawLen = getCorrectedRawLength(&results);
             return resultToSourceCode(&results);
         }
 
@@ -91,7 +101,7 @@ class IR
             ledOn();
             while (!iRrecv->decode(&results)){   //阻塞，直到获取到红外信息
                 delay(1000);
-                if(recCount ++ >=10){
+                if(recCount ++ >= IR_REC_TIMEOUT_S){
                     ledOff();
                     return false;
                 }
@@ -121,6 +131,10 @@ class IR
 
         IRsend* getIRsend(){
             return iRsend;
+        }
+
+        uint16_t getRawLen(){
+            return rawLen;
         }
 };
 
