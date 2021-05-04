@@ -32,11 +32,15 @@ public:
     Config(Config &other) = delete;
     void operator=(const Config &) = delete;
 
-    static Config* getConfig(){
+    static Config* start(){
         if (_config == nullptr)
         {
             _config = new Config();
         }
+        return _config;
+    }
+
+    static Config* getConfig(){
         return _config;
     }
 

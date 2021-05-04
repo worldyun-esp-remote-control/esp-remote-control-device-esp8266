@@ -14,14 +14,15 @@
 
 
 
-//-----------全局变量--------------------------
-IR ir;      //红外Obj
-Config *config = Config::getConfig();
-
-
 //-----------静态变量初始化--------------------
 Config *Config::_config = nullptr;
+IR *IR::_ir = nullptr;
 
+
+
+//-----------全局变量--------------------------
+IR *ir = IR::start(IR_RECV_PIN, IR_RECV_BUFFER_SIZE, IR_SEND_PIN, USE_LED, LED_PIN);   //红外Obj
+Config *config = Config::getConfig();
 
 
 
@@ -34,13 +35,14 @@ const uint16_t rawCodes_open[199] = {4476, 4424,  568, 1626,  540, 536,  542, 16
 
 //------------初始化---------------------------
 void setup() {
-  Serial.begin(115200);           //设置串口波特率
+  Serial.begin(115200);            //设置串口波特率
   if(USE_LED){
     pinMode(LED_PIN,OUTPUT);       //led脚输出，低电平点亮
     digitalWrite(LED_PIN, HIGH);   //默认高电平，关闭led
   }
-  ir.begin(IR_RECV_PIN, IR_RECV_BUFFER_SIZE, IR_SEND_PIN, USE_LED, LED_PIN);                  //启用红外
-  beginWiFi();                    //启用WIFI
+  Config::start();                 //读取config，必须在其他功能前启动
+  WIFI::start();                   //启动WIFI
+  IR::start(IR_RECV_PIN, IR_RECV_BUFFER_SIZE, IR_SEND_PIN, USE_LED, LED_PIN);   //启动红外
 }
 
 

@@ -17,34 +17,46 @@
 class IR
 {
     private:
+        static IR* _ir;
         IRrecv* iRrecv;       //recObj
         IRsend* iRsend;       //sendObj
         const uint16_t khz = 38;       //红外频率,一般为38kHz
         decode_results results;    //recDataObj
-        bool _useLed = false;
-        uint16_t _ledPin = 2;
+        bool useLed = false;
+        uint16_t ledPin = 2;
         uint8_t recCount;
 
-        // IR(uint16_t recvPin = 4, uint16_t buffSize = 200, uint16_t sendPin = 5, bool isLED = false, uint16_t ledPin = 2){
-        //     this->iRrecv = new IRrecv(recvPin, buffSize);
-        //     this->iRsend = new IRsend(sendPin);
-        // }
+        IR(uint16_t recvPin = 4, uint16_t buffSize = 200, uint16_t sendPin = 5, bool useLed = false, uint16_t ledPin = 2){
+            this->iRrecv = new IRrecv(recvPin, buffSize);
+            this->iRsend = new IRsend(sendPin);
+
+            this->iRrecv->enableIRIn();   // 启用红外接收
+            this->iRsend->begin();        //启用红外发送
+
+            this->useLed = useLed;
+            this->ledPin = ledPin;
+        }
+
     public:
+        
         ~IR(){
             delete iRrecv;
             iRrecv = nullptr;
             delete iRsend;
             iRsend = nullptr;
         }
-        void begin(uint16_t recvPin = 4, uint16_t buffSize = 200, uint16_t sendPin = 5, bool useLed = false, uint16_t ledPin = 2){
-            iRrecv = new IRrecv(recvPin, buffSize);
-            iRsend = new IRsend(sendPin);
+        IR(IR &other) = delete;
+        void operator=(const IR &) = delete;
 
-            iRrecv->enableIRIn();   // 启用红外接收
-            iRsend->begin();        //启用红外发送
+        static IR* start(uint16_t recvPin = 4, uint16_t buffSize = 200, uint16_t sendPin = 5, bool useLed = false, uint16_t ledPin = 2){
+            if(_ir == nullptr){
+                _ir = new IR(recvPin, buffSize, sendPin, useLed, ledPin);
+            }
+            return _ir;
+        }
 
-            _useLed = useLed;
-            _ledPin = ledPin;
+        static IR* getIR(){
+            return _ir;
         }
 
         void sendRaw(uint16_t buf[], uint16_t len){
@@ -89,16 +101,16 @@ class IR
         }
 
         void ledOn(){
-            if (_useLed)
+            if (useLed)
             {
-                digitalWrite(_ledPin, LOW);   //默认低电平，打开led
+                digitalWrite(ledPin, LOW);   //默认低电平，打开led
             }
         }
 
         void ledOff(){
-            if (_useLed)
+            if (useLed)
             {
-                digitalWrite(_ledPin, HIGH);   //默认高电平，关闭led
+                digitalWrite(ledPin, HIGH);   //默认高电平，关闭led
             }
         }
 
