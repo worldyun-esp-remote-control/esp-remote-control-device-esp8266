@@ -18,16 +18,14 @@ private:
     static Config* _config;
     Config(){
         this->loadConfig();
-        this->mqttUserName = "esp-device";
-        this->mqttPassword = "123456";
     };
 public:
 
     String deviceID;
     String wifiSSID;
     String wifiPassword;
-    String mqttUserName;
-    String mqttPassword;
+    // String mqttUserName;
+    // String mqttPassword;
 
 
     ~Config(){
@@ -111,13 +109,13 @@ public:
         this->wifiPassword = wifiPassword;
     }
 
-    void setMqttUserName(String mqttUserName){
-        this->mqttUserName = mqttUserName;
-    }
+    // void setMqttUserName(String mqttUserName){
+    //     this->mqttUserName = mqttUserName;
+    // }
 
-    void setMqttPassword(String mqttPassword){
-        this->mqttPassword = mqttPassword;
-    }
+    // void setMqttPassword(String mqttPassword){
+    //     this->mqttPassword = mqttPassword;
+    // }
 
 };
 

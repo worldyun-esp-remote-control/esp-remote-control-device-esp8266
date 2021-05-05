@@ -11,9 +11,11 @@
 #define MQTT_SERVER_PORT 1883                   //MQTT 服务器端口
 #define MSG_BUFFER_SIZE	1560                    //MQTT msg buffer size
 #define MSG_CUT_SIZE 128                        //MQTT 上传报文分片大小
-#define MQTT_UPLOAD_TOPIC "/upload"             //MQTT 上传topic
+// #define MQTT_UPLOAD_TOPIC "/upload"             //MQTT 上传topic
 #define MQTT_LEARN_TOPIC "/learn"               //MQTT 上传学习码topic
 #define MQTT_DOWNLOAD_TOPIC "/device/"          //MQTT 订阅topic前缀
+#define MQTT_UAERNAME "esp-device"              //MQTT 用户名
+#define MQTT_PASSWORD "123456"                  //MQTT 密码
 #define JSON_BUFFER_SIZE 2048                   //Json buff size
 
 #include <PubSubClient.h>
@@ -118,14 +120,11 @@ public:
                 rawArray.add(raw[i]);
             }
         }
-        Serial.println("learn ....2 ....");
         doc["rawID"] = rawID;
         String uploadString;
         serializeJson(doc, uploadString);
-        Serial.println("learn ....3 ....");
         doc.clear();
         publish(MQTT_LEARN_TOPIC, uploadString);
-        Serial.println("learn ....4 ....");
         Serial.println(uploadString);
         */
 
@@ -170,7 +169,7 @@ public:
 
     bool connect(){
         Config* config = Config::getConfig();
-        if(mqttClient->connect(config->deviceID.c_str(), config->mqttUserName.c_str(), config->mqttPassword.c_str())){       //MQTT连接
+        if(mqttClient->connect(config->deviceID.c_str(), MQTT_UAERNAME, MQTT_PASSWORD)){       //MQTT连接
             mqttClient->subscribe(subscribeTopic.c_str());          //MQTT 订阅
             return true;
         }
