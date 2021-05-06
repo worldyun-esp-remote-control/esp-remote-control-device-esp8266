@@ -203,7 +203,7 @@ public:
             lastHeartBeatTime = nowTime;
             String uploadString = "{\"id\":";
             uploadString += VERSION;
-            uploadString += ",\"mqttID\":\"";
+            uploadString += ",\"mqttId\":\"";
             uploadString += Config::getConfig()->deviceID;
             uploadString += "\"}";
             Serial.println(uploadString);
