@@ -7,7 +7,7 @@
 #ifndef _ESP_REMOTE_CONTROL_MQTT_
 #define _ESP_REMOTE_CONTROL_MQTT_
 
-#define MQTT_SERVER_ADDRESS "worldyun.xyz"      //MQTT 服务器地址、域名
+#define MQTT_SERVER_ADDRESS "mqtt.worldyun.xyz" //MQTT 服务器地址、域名
 #define MQTT_SERVER_PORT 1883                   //MQTT 服务器端口
 #define MSG_BUFFER_SIZE	1560                    //MQTT msg buffer size
 #define MSG_CUT_SIZE 128                        //MQTT 上传报文分片大小
