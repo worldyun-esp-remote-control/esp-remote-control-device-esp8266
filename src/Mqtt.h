@@ -11,12 +11,14 @@
 #define MQTT_SERVER_PORT 1883                   //MQTT 服务器端口
 #define MSG_BUFFER_SIZE	1560                    //MQTT msg buffer size
 #define MSG_CUT_SIZE 128                        //MQTT 上传报文分片大小
-// #define MQTT_UPLOAD_TOPIC "/upload"             //MQTT 上传topic
+#define MQTT_UPLOAD_TOPIC "/upload"             //MQTT 上传topic
 #define MQTT_LEARN_TOPIC "/learn"               //MQTT 上传学习码topic
 #define MQTT_DOWNLOAD_TOPIC "/device/"          //MQTT 订阅topic前缀
 #define MQTT_UAERNAME "esp-device"              //MQTT 用户名
 #define MQTT_PASSWORD "123456"                  //MQTT 密码
 #define JSON_BUFFER_SIZE 2048                   //Json buff size
+#define HEART_BEAT_TIME 15000                   //心跳时间(ms)
+#define VERSION 1                               //版本
 
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
@@ -32,12 +34,14 @@ private:
     String subscribeTopic;
     char msgBuf[MSG_BUFFER_SIZE];
     uint16_t msgSize;
+    uint32_t lastHeartBeatTime;
     Mqtt(){
         mqttClient = new PubSubClient(wifiClient);
         mqttClient->setServer(MQTT_SERVER_ADDRESS, MQTT_SERVER_PORT);
         mqttClient->setCallback(callback);
         mqttClient->setBufferSize(MSG_BUFFER_SIZE);
         subscribeTopic = MQTT_DOWNLOAD_TOPIC + Config::getConfig()->deviceID;
+        lastHeartBeatTime = millis();
         connect();
     }
 public:
@@ -193,11 +197,26 @@ public:
         }
     }
     
+    void heartBeat(){
+        uint32_t nowTime = millis();
+        if(nowTime - lastHeartBeatTime > HEART_BEAT_TIME){
+            lastHeartBeatTime = nowTime;
+            String uploadString = "{\"id\":";
+            uploadString += VERSION;
+            uploadString += ",\"mqttID\":\"";
+            uploadString += Config::getConfig()->deviceID;
+            uploadString += "\"}";
+            Serial.println(uploadString);
+            publish(MQTT_UPLOAD_TOPIC, &uploadString);
+        }
+    }
+    
     static void loop() {
         Mqtt* mqtt = getMqtt();
         if (!mqtt->getPubSubClient()->connected()) {
             mqtt->reconnect();
         }
+        mqtt->heartBeat();
         mqtt->getPubSubClient()->loop();
     }
 
