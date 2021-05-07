@@ -10,6 +10,8 @@
 #define _ESP_REMOTE_CONTROL_IR_
 
 #define IR_REC_TIMEOUT_S 5
+#define LED_ON LOW               //led 开
+#define LED_OFF HIGH             //led 关
 
 #include <IRremoteESP8266.h>
 #include <IRrecv.h>
@@ -113,14 +115,14 @@ class IR
         void ledOn(){
             if (useLed)
             {
-                digitalWrite(ledPin, LOW);   //默认低电平，打开led
+                digitalWrite(ledPin, LED_ON);   //打开led
             }
         }
 
         void ledOff(){
             if (useLed)
             {
-                digitalWrite(ledPin, HIGH);   //默认高电平，关闭led
+                digitalWrite(ledPin, LED_OFF);   //关闭led
             }
         }
 

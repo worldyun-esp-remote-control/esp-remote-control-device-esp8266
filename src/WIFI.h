@@ -7,8 +7,11 @@
 #ifndef _ESP_REMOTE_CONTROL_WIFI_
 #define _ESP_REMOTE_CONTROL_WIFI_
 
+#define WIFI_CONFIG_WAIT_S 20  //smartConfig wait time
+
 #include <ESP8266WiFi.h>
 #include <ESP8266WiFiMulti.h>
+#include <WiFiManager.h>
 #include <Config.h>
 
 ESP8266WiFiMulti wifiMulti;   //可以改成类内static成员，需要在main中初始化
@@ -19,24 +22,39 @@ private:
   WIFI(){};
 public:
 
+  static void wifiManager(){
+    WiFiManager wifiManager;
+    wifiManager.autoConnect("AutoConnectAP");
+  }
+
   static void smartConfig(){
     WiFi.mode(WIFI_STA);
     Serial.println("\r\nWait for Smartconfig");
     WiFi.beginSmartConfig();
+    u16_t count = 0;
     while (!WiFi.smartConfigDone()) {
       Serial.print(".");
       delay(500);
+      if(count ++ >= WIFI_CONFIG_WAIT_S){
+          //WiFi配置失败, 使用网页配置模式
+          Serial.println();
+          Serial.println("SmartConfig fail....wait for web config");
+          wifiManager();
+          break;
+      }
     }
-    Serial.println();
-    Serial.println("SmartConfig Success");
-    Serial.printf("SSID:%s\r\n", WiFi.SSID().c_str());
-    Serial.printf("PSW:%s\r\n", WiFi.psk().c_str());
-    Config *config = Config::getConfig();
-    config->deviceID = WiFi.macAddress();
-    config->wifiSSID = WiFi.SSID();
-    config->wifiPassword = WiFi.psk();
-    config->saveConfig();
-    wifiMulti.addAP(WiFi.SSID().c_str(),WiFi.psk().c_str());
+    if (WiFi.status() == WL_CONNECTED){
+      Serial.println();
+      Serial.println("Wifi Connect Success");
+      Serial.printf("SSID:%s\r\n", WiFi.SSID().c_str());
+      Serial.printf("PSW:%s\r\n", WiFi.psk().c_str());
+      Config *config = Config::getConfig();
+      config->deviceID = WiFi.macAddress();
+      config->wifiSSID = WiFi.SSID();
+      config->wifiPassword = WiFi.psk();
+      config->saveConfig();
+      wifiMulti.addAP(WiFi.SSID().c_str(),WiFi.psk().c_str());
+    }
   }
 
   static void loadConfig(){

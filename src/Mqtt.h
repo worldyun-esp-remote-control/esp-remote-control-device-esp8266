@@ -19,6 +19,8 @@
 #define JSON_BUFFER_SIZE 2048                   //Json buff size
 #define HEART_BEAT_TIME 15000                   //心跳时间(ms)
 #define VERSION 1                               //版本
+#define SEND_TYPE_CODE 1                        //红外发送
+#define LEARN_TYPE_CODE 2                       //红外学习
 
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
@@ -85,11 +87,11 @@ public:
         uint32_t rawID = json["data"]["rawID"];
         switch (codeType)
         {
-        case 1:         //send
+        case SEND_TYPE_CODE:         //send
             send(json["data"]["raw"].as<JsonArray>());
             break;
         
-        case 2:         //learn
+        case LEARN_TYPE_CODE:         //learn
             json.clear();
             learn(rawID);
             break;
@@ -104,7 +106,6 @@ public:
         for (JsonVariant value : jsonArray) {
             raw[i++] = value.as<uint16_t>();
         }
-        Serial.println(size);
         IR::getIR()->sendRaw(raw, size);
         delete raw;
     }
@@ -115,22 +116,6 @@ public:
         Serial.println("learn .... .... ");
         uint16_t* raw = IR::getIR()->recRawArray();
         uint16_t rawLen = IR::getIR()->getRawLen();
-
-        /*  ESP8266内存太小， 用JSON会爆掉，只能手动封装， 这段代码留着以后上ESP32时使用
-        DynamicJsonDocument doc(JSON_BUFFER_SIZE);
-        JsonArray rawArray  = doc.createNestedArray("raw");
-        if(raw != nullptr){
-            for (size_t i = 0; i < rawLen; i++){
-                rawArray.add(raw[i]);
-            }
-        }
-        doc["rawID"] = rawID;
-        String uploadString;
-        serializeJson(doc, uploadString);
-        doc.clear();
-        publish(MQTT_LEARN_TOPIC, uploadString);
-        Serial.println(uploadString);
-        */
 
         String uploadString = "{\"rawID\":";
         uploadString += rawID;

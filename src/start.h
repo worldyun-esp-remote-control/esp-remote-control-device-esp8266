@@ -20,6 +20,8 @@
 #define IR_SEND_PIN 5            //sendPin
 #define LED_PIN 2                //ledPin
 #define USE_LED true             //是否启用led
+#define LED_ON LOW               //led 开
+#define LED_OFF HIGH             //led 关
 
 
 //-----------静态变量初始化--------------------
@@ -32,7 +34,7 @@ void start(){
     Serial.begin(SERIAL_BAUD);       //设置串口波特率
     if(USE_LED){
         pinMode(LED_PIN,OUTPUT);       //led脚输出，低电平点亮
-        digitalWrite(LED_PIN, HIGH);   //默认高电平，关闭led
+        digitalWrite(LED_PIN, LED_OFF);   //默认高电平，关闭led
     }
     Config::start();                 //读取config，必须在其他功能前启动
     WIFI::start();                   //启动WIFI
